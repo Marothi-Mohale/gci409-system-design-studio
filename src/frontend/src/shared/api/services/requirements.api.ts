@@ -5,6 +5,9 @@ export const requirementsApi = {
   getCurrent(token: string, projectId: string) {
     return apiRequest<RequirementSetVersion>(`/api/projects/${projectId}/requirements/current`, { token });
   },
+  bootstrap(token: string, projectId: string) {
+    return apiRequest<RequirementSetVersion>(`/api/projects/${projectId}/requirements/bootstrap`, { method: "POST", token });
+  },
   save(
     token: string,
     projectId: string,

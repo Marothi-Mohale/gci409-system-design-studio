@@ -10,6 +10,7 @@ public sealed class ArtifactService(
     IGci409DbContext dbContext,
     ProjectService projectService,
     IArtifactExportContentResolver artifactExportContentResolver,
+    IArtifactPdfRenderer artifactPdfRenderer,
     IAuditWriter auditWriter,
     IClock clock)
 {
@@ -46,7 +47,19 @@ public sealed class ArtifactService(
 
         await projectService.EnsureProjectAccessAsync(version.GeneratedArtifact.ProjectId, userId, ProjectRole.Viewer, cancellationToken);
 
-        var content = artifactExportContentResolver.ResolveContent(version, request.Format);
+        var sourceContent = artifactExportContentResolver.ResolveContent(version, ResolveSourceFormat(version, request.Format));
+        var content = request.Format == OutputFormat.Pdf
+            ? Convert.ToBase64String(
+                artifactPdfRenderer.Render(
+                    new ArtifactPdfRenderRequest(
+                        version.GeneratedArtifact.Title,
+                        version.GeneratedArtifact.ArtifactKind,
+                        version.VersionNumber,
+                        version.Summary,
+                        ResolveSourceFormat(version, request.Format),
+                        sourceContent,
+                        clock.UtcNow)))
+            : sourceContent;
         var fileName = $"{version.GeneratedArtifact.Title.Replace(' ', '-')}-v{version.VersionNumber}.{ResolveExtension(request.Format)}";
         var export = version.AddExport(request.Format, fileName, content, userId, clock.UtcNow);
         await dbContext.ArtifactExports.AddAsync(export, cancellationToken);
@@ -54,7 +67,25 @@ public sealed class ArtifactService(
         await dbContext.SaveChangesAsync(cancellationToken);
         await auditWriter.WriteAsync(userId, version.GeneratedArtifact.ProjectId, "artifact.exported", nameof(ArtifactExport), export.Id.ToString(), $"Exported artifact version {version.VersionNumber} as {request.Format}.", cancellationToken: cancellationToken);
 
-        return new ExportResponse(export.Id, export.Format, export.FileName, export.Content, export.CreatedAtUtc);
+        return new ExportResponse(
+            export.Id,
+            export.Format,
+            export.FileName,
+            ArtifactExportFileMetadata.IsBinary(export.Format) ? null : export.Content,
+            ArtifactExportFileMetadata.ResolveContentType(export.Format, export.FileName),
+            ArtifactExportFileMetadata.ResolveContentEncoding(export.Format),
+            $"/api/exports/{export.Id}/download",
+            export.CreatedAtUtc);
+    }
+
+    private static OutputFormat ResolveSourceFormat(ArtifactVersion version, OutputFormat requestedFormat)
+    {
+        if (requestedFormat != OutputFormat.Pdf)
+        {
+            return requestedFormat;
+        }
+
+        return version.PrimaryFormat;
     }
 
     private static string ResolveExtension(OutputFormat format)

@@ -47,7 +47,6 @@ export function DashboardPage() {
     mutationFn: (values: FormValues) => projectsApi.create(session!.accessToken, values),
     onSuccess: async (project) => {
       reset();
-      queryClient.setQueryData(["project-detail", project.id], project);
       await queryClient.invalidateQueries({ queryKey: ["projects", session?.userId] });
       navigate(`/app/projects/${project.id}`);
     }

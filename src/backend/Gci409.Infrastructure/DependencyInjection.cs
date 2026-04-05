@@ -4,6 +4,7 @@ using Gci409.Infrastructure.Logging;
 using Gci409.Infrastructure.Generation;
 using Gci409.Infrastructure.Persistence;
 using Gci409.Infrastructure.Recommendations;
+using Gci409.Infrastructure.Requirements;
 using Gci409.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -30,7 +31,9 @@ public static class DependencyInjection
         services.AddScoped<IRefreshTokenProtector, RefreshTokenProtector>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IAuditWriter, AuditWriter>();
+        services.AddSingleton<IRequirementBaselineBootstrapper, ProjectBriefRequirementBaselineBootstrapper>();
         services.AddScoped<IArtifactExportContentResolver, ArtifactExportContentResolver>();
+        services.AddSingleton<IArtifactPdfRenderer, ArtifactPdfRenderer>();
         services.AddSingleton<IArtifactRecommendationEngine, RuleBasedArtifactRecommendationEngine>();
         services.AddSingleton<IArtifactGenerationEngine, RuleBasedArtifactGenerationEngine>();
 

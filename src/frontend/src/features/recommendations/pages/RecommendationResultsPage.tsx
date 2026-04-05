@@ -5,6 +5,7 @@ import { useAuth } from "../../auth/context/AuthProvider";
 import { useWorkspaceSnapshot } from "../../projects/hooks/useWorkspaceSnapshot";
 import { generationApi } from "../../../shared/api/services/generation.api";
 import { recommendationsApi } from "../../../shared/api/services/recommendations.api";
+import { requirementsApi } from "../../../shared/api/services/requirements.api";
 import { artifactKindLabels } from "../../../shared/types/domain";
 import { EmptyState } from "../../../shared/ui/EmptyState";
 import { PageHeader } from "../../../shared/ui/PageHeader";
@@ -27,6 +28,13 @@ export function RecommendationResultsPage() {
     mutationFn: () => recommendationsApi.generate(session!.accessToken, projectId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["workspace-recommendations", projectId] });
+    }
+  });
+
+  const bootstrapMutation = useMutation({
+    mutationFn: () => requirementsApi.bootstrap(session!.accessToken, projectId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["workspace-requirements", projectId] });
     }
   });
 
@@ -80,6 +88,13 @@ export function RecommendationResultsPage() {
         <EmptyState
           title="No requirement baseline yet"
           description="Capture requirements and constraints first so the recommendation engine has evidence to evaluate."
+          action={
+            <div className="button-row">
+              <button onClick={() => bootstrapMutation.mutate()} disabled={bootstrapMutation.isPending}>
+                {bootstrapMutation.isPending ? "Building baseline..." : "Create baseline from brief"}
+              </button>
+            </div>
+          }
         />
       ) : (
         <>

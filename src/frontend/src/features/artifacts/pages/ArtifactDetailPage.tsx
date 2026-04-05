@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthProvider";
@@ -12,7 +12,7 @@ import {
   OutputFormat,
   outputFormatLabels
 } from "../../../shared/types/domain";
-import { downloadTextFile } from "../../../shared/utils/downloads";
+import { downloadAuthenticatedFile } from "../../../shared/utils/downloads";
 import { DiagramPreview } from "../../../shared/ui/DiagramPreview";
 import { EmptyState } from "../../../shared/ui/EmptyState";
 import { LoadingBlock } from "../../../shared/ui/LoadingBlock";
@@ -34,6 +34,17 @@ export function ArtifactDetailPage() {
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const [previewMessage, setPreviewMessage] = useState<string | null>(null);
+  const pdfExportMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedVersion) {
+        throw new Error("Select an artifact version before exporting.");
+      }
+
+      const exportResult = await artifactsApi.export(session!.accessToken, selectedVersion.id, OutputFormat.Pdf);
+      await downloadAuthenticatedFile(exportResult.downloadUrl, session!.accessToken, exportResult.fileName);
+      return exportResult;
+    }
+  });
 
   const versionsQuery = useQuery({
     queryKey: ["artifact-versions", projectId, artifactId],
@@ -99,6 +110,10 @@ export function ArtifactDetailPage() {
 
     try {
       const exportResult = await artifactsApi.export(session!.accessToken, currentVersion.id, format);
+      if (!exportResult.content) {
+        throw new Error("The selected representation is only available as a downloadable file.");
+      }
+
       setPreview({
         format: exportResult.format,
         content: exportResult.content,
@@ -108,14 +123,6 @@ export function ArtifactDetailPage() {
     } catch (error) {
       setPreviewMessage(error instanceof Error ? error.message : "Unable to load the selected representation.");
     }
-  }
-
-  function downloadPreview() {
-    if (!preview) {
-      return;
-    }
-
-    downloadTextFile(preview.fileName, preview.content, getMimeType(preview.format));
   }
 
   const availableFormats = getAvailableFormats(artifact.artifactKind, currentVersion.primaryFormat);
@@ -129,8 +136,8 @@ export function ArtifactDetailPage() {
         actions={
           <>
             <StatusBadge label={artifactStatusLabels[artifact.status] ?? "Draft"} tone={getArtifactTone(artifact.status)} />
-            <button className="ghost-button" onClick={downloadPreview}>
-              Download current preview
+            <button className="ghost-button" onClick={() => pdfExportMutation.mutate()} disabled={pdfExportMutation.isPending}>
+              {pdfExportMutation.isPending ? "Preparing PDF..." : "Download PDF"}
             </button>
           </>
         }
@@ -180,6 +187,11 @@ export function ArtifactDetailPage() {
             <div className="stack">
               <p className="subtle-text">{currentVersion.summary}</p>
               {previewMessage && <div className="message">{previewMessage}</div>}
+              {pdfExportMutation.isError && (
+                <div className="message" role="alert">
+                  {pdfExportMutation.error instanceof Error ? pdfExportMutation.error.message : "Unable to create the PDF export."}
+                </div>
+              )}
             </div>
           </Panel>
 
@@ -253,18 +265,6 @@ function toPreviewNotation(format: number) {
       return "plantuml" as const;
     default:
       return "markdown" as const;
-  }
-}
-
-function getMimeType(format: number) {
-  switch (format) {
-    case OutputFormat.Markdown:
-      return "text/markdown;charset=utf-8";
-    case OutputFormat.Mermaid:
-    case OutputFormat.PlantUml:
-      return "text/plain;charset=utf-8";
-    default:
-      return "text/plain;charset=utf-8";
   }
 }
 

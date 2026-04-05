@@ -1,15 +1,16 @@
 import { NavLink, Outlet, useParams } from "react-router-dom";
+import { useAuth } from "../../features/auth/context/AuthProvider";
 import { useProjectDetail } from "../../features/projects/hooks/useProjects";
 import { EmptyState } from "../../shared/ui/EmptyState";
 import { LoadingBlock } from "../../shared/ui/LoadingBlock";
 import { PageHeader } from "../../shared/ui/PageHeader";
 import { getProjectNavigationItems } from "../../shared/navigation/nav";
-import { useProjectRole } from "../../features/projects/hooks/useProjectRole";
+import { ProjectRole } from "../../shared/types/domain";
 
 export function ProjectLayout() {
   const { projectId = "" } = useParams();
+  const { session } = useAuth();
   const { data: project, isLoading } = useProjectDetail(projectId);
-  const projectRole = useProjectRole(projectId);
 
   if (isLoading) {
     return <LoadingBlock label="Loading workspace" />;
@@ -19,6 +20,7 @@ export function ProjectLayout() {
     return <EmptyState title="Workspace not found" description="Select a project from the rail to continue." />;
   }
 
+  const projectRole = project.members?.find((member) => member.userId === session?.userId)?.role ?? ProjectRole.Viewer;
   const navItems = getProjectNavigationItems(projectId, projectRole);
 
   return (

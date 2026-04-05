@@ -23,4 +23,11 @@ public sealed class RequirementsController(RequirementService requirementService
         var response = await requirementService.SaveCurrentAsync(projectId, User.GetUserId(), request, cancellationToken);
         return Ok(response);
     }
+
+    [HttpPost("bootstrap")]
+    public async Task<ActionResult<RequirementSetVersionResponse>> Bootstrap(Guid projectId, CancellationToken cancellationToken)
+    {
+        var response = await requirementService.BootstrapFromProjectBriefAsync(projectId, User.GetUserId(), cancellationToken);
+        return Ok(response);
+    }
 }

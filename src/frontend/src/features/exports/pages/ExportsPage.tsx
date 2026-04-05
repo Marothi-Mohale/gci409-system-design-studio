@@ -5,7 +5,7 @@ import { useAuth } from "../../auth/context/AuthProvider";
 import { useWorkspaceSnapshot } from "../../projects/hooks/useWorkspaceSnapshot";
 import { artifactsApi } from "../../../shared/api/services/artifacts.api";
 import { artifactKindLabels, OutputFormat, outputFormatLabels } from "../../../shared/types/domain";
-import { downloadTextFile } from "../../../shared/utils/downloads";
+import { downloadAuthenticatedFile } from "../../../shared/utils/downloads";
 import { EmptyState } from "../../../shared/ui/EmptyState";
 import { PageHeader } from "../../../shared/ui/PageHeader";
 import { Panel } from "../../../shared/ui/Panel";
@@ -40,9 +40,9 @@ export function ExportsPage() {
       return;
     }
 
-    const format = selectedFormats[artifactId] ?? selected.latestVersion.primaryFormat;
+    const format = selectedFormats[artifactId] ?? getPreferredExportFormat(selected.artifact.artifactKind, selected.latestVersion.primaryFormat);
     const result = await artifactsApi.export(session!.accessToken, selected.latestVersion.id, format);
-    downloadTextFile(result.fileName, result.content, getMimeType(result.format));
+    await downloadAuthenticatedFile(result.downloadUrl, session!.accessToken, result.fileName);
     setLastExport({
       fileName: result.fileName,
       format: result.format,
@@ -55,7 +55,7 @@ export function ExportsPage() {
       <PageHeader
         eyebrow="Exports"
         title="Download design outputs"
-        description="Export the latest artifact versions as Markdown, Mermaid, or PlantUML source for downstream sharing and review."
+        description="Export the latest artifact versions as shareable PDF files, with source formats still available where useful."
       />
 
       {lastExport && (
@@ -94,7 +94,7 @@ export function ExportsPage() {
                     <label>
                       Export format
                       <select
-                        value={selectedFormats[artifact.id] ?? latestVersion.primaryFormat}
+                        value={selectedFormats[artifact.id] ?? getPreferredExportFormat(artifact.artifactKind, latestVersion.primaryFormat)}
                         onChange={(event) =>
                           setSelectedFormats((current) => ({
                             ...current,
@@ -137,6 +137,8 @@ export function ExportsPage() {
 }
 
 function getExportOptions(artifactKind: number, primaryFormat: number) {
+  const formats = [OutputFormat.Pdf];
+
   if (
     artifactKind === 1 ||
     artifactKind === 2 ||
@@ -145,21 +147,19 @@ function getExportOptions(artifactKind: number, primaryFormat: number) {
     artifactKind === 5 ||
     artifactKind === 6
   ) {
-    return [OutputFormat.PlantUml, OutputFormat.Mermaid];
+    formats.push(OutputFormat.PlantUml, OutputFormat.Mermaid);
+    return Array.from(new Set(formats));
   }
 
   if (artifactKind === 7 || artifactKind === 8 || artifactKind === 9) {
-    return [OutputFormat.Mermaid];
+    formats.push(OutputFormat.Mermaid);
+    return Array.from(new Set(formats));
   }
 
-  return [primaryFormat];
+  formats.push(primaryFormat);
+  return Array.from(new Set(formats));
 }
 
-function getMimeType(format: number) {
-  switch (format) {
-    case OutputFormat.Markdown:
-      return "text/markdown;charset=utf-8";
-    default:
-      return "text/plain;charset=utf-8";
-  }
+function getPreferredExportFormat(_artifactKind: number, _primaryFormat: number) {
+  return OutputFormat.Pdf;
 }

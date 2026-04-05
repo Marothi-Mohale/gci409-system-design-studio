@@ -9,7 +9,15 @@ public sealed record ArtifactVersionResponse(Guid Id, int VersionNumber, OutputF
 
 public sealed record CreateExportRequest(OutputFormat Format);
 
-public sealed record ExportResponse(Guid Id, OutputFormat Format, string FileName, string Content, DateTimeOffset CreatedAtUtc);
+public sealed record ExportResponse(
+    Guid Id,
+    OutputFormat Format,
+    string FileName,
+    string? Content,
+    string ContentType,
+    string? ContentEncoding,
+    string DownloadUrl,
+    DateTimeOffset CreatedAtUtc);
 
 public sealed class CreateExportRequestValidator : AbstractValidator<CreateExportRequest>
 {

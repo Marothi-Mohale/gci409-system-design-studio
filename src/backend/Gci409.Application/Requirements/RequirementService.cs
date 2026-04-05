@@ -9,6 +9,7 @@ namespace Gci409.Application.Requirements;
 public sealed class RequirementService(
     IGci409DbContext dbContext,
     ProjectService projectService,
+    IRequirementBaselineBootstrapper requirementBaselineBootstrapper,
     IAuditWriter auditWriter,
     IClock clock)
 {
@@ -89,5 +90,24 @@ public sealed class RequirementService(
             version.Requirements.Select(x => new RequirementInput(x.Code, x.Title, x.Description, x.Type, x.Priority)).ToList(),
             version.Constraints.Select(x => new ConstraintInput(x.Title, x.Description, x.Type, x.Severity)).ToList(),
             version.CreatedAtUtc);
+    }
+
+    public async Task<RequirementSetVersionResponse> BootstrapFromProjectBriefAsync(Guid projectId, Guid userId, CancellationToken cancellationToken = default)
+    {
+        await projectService.EnsureProjectAccessAsync(projectId, userId, ProjectRole.Contributor, cancellationToken);
+
+        var current = await GetCurrentAsync(projectId, userId, cancellationToken);
+        if (current is not null)
+        {
+            return current;
+        }
+
+        var project = await dbContext.Projects
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == projectId, cancellationToken)
+            ?? throw new NotFoundException("Project was not found.");
+
+        var draft = requirementBaselineBootstrapper.BuildFromProjectBrief(project.Name, project.Description);
+        return await SaveCurrentAsync(projectId, userId, new SaveRequirementSetRequest(draft.Name, draft.Summary, draft.Requirements, draft.Constraints), cancellationToken);
     }
 }

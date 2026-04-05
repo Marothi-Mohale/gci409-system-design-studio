@@ -7,6 +7,7 @@ using Gci409.Domain.Projects;
 using Gci409.Domain.Recommendations;
 using Gci409.Domain.Requirements;
 using Gci409.Domain.Templates;
+using Gci409.Application.Requirements;
 using Microsoft.EntityFrameworkCore;
 
 namespace Gci409.Application.Common;
@@ -77,6 +78,11 @@ public interface IArtifactRecommendationEngine
     IReadOnlyCollection<ArtifactRecommendationDraft> Recommend(RecommendationInput input);
 }
 
+public interface IRequirementBaselineBootstrapper
+{
+    RequirementBaselineDraft BuildFromProjectBrief(string projectName, string? projectDescription);
+}
+
 public interface IArtifactGenerationEngine
 {
     IReadOnlyCollection<ArtifactDraft> Generate(ArtifactGenerationInput input);
@@ -87,11 +93,22 @@ public interface IArtifactExportContentResolver
     string ResolveContent(ArtifactVersion version, OutputFormat format);
 }
 
+public interface IArtifactPdfRenderer
+{
+    byte[] Render(ArtifactPdfRenderRequest request);
+}
+
 public sealed record JwtTokenResult(string AccessToken, string RefreshToken, DateTimeOffset ExpiresAtUtc);
 
 public sealed record ArtifactRecommendationDraft(ArtifactKind ArtifactKind, string Title, string Rationale, decimal ConfidenceScore, RecommendationStrength Strength);
 
 public sealed record RecommendationInput(string ProjectName, string RequirementSummary, IReadOnlyCollection<string> RequirementDescriptions, IReadOnlyCollection<string> ConstraintDescriptions);
+
+public sealed record RequirementBaselineDraft(
+    string Name,
+    string Summary,
+    IReadOnlyCollection<RequirementInput> Requirements,
+    IReadOnlyCollection<ConstraintInput> Constraints);
 
 public sealed record ArtifactDraft(
     ArtifactKind ArtifactKind,
@@ -108,3 +125,12 @@ public sealed record ArtifactGenerationInput(
     IReadOnlyCollection<string> RequirementDescriptions,
     IReadOnlyCollection<string> ConstraintDescriptions,
     IReadOnlyCollection<ArtifactKind> ArtifactKinds);
+
+public sealed record ArtifactPdfRenderRequest(
+    string Title,
+    ArtifactKind ArtifactKind,
+    int VersionNumber,
+    string Summary,
+    OutputFormat SourceFormat,
+    string SourceContent,
+    DateTimeOffset CreatedAtUtc);

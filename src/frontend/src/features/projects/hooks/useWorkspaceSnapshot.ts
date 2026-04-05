@@ -30,12 +30,14 @@ export function useWorkspaceSnapshot(projectId: string) {
       {
         queryKey: ["workspace-generation", projectId],
         queryFn: () => generationApi.list(token!, projectId),
-        enabled: Boolean(token && projectId)
+        enabled: Boolean(token && projectId),
+        refetchInterval: 3000
       },
       {
         queryKey: ["workspace-artifacts", projectId],
         queryFn: () => artifactsApi.list(token!, projectId),
-        enabled: Boolean(token && projectId)
+        enabled: Boolean(token && projectId),
+        refetchInterval: 3000
       }
     ]
   });

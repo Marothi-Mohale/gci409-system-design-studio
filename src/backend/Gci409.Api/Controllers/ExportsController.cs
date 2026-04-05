@@ -1,5 +1,6 @@
 using System.Text;
 using Gci409.Api.Infrastructure;
+using Gci409.Application.Artifacts;
 using Gci409.Application.Common;
 using Gci409.Application.Exports;
 using Microsoft.AspNetCore.Authorization;
@@ -33,19 +34,10 @@ public sealed class ExportsController(ExportService exportService) : ControllerB
     public async Task<IActionResult> Download(Guid exportId, CancellationToken cancellationToken)
     {
         var response = await exportService.GetAsync(exportId, User.GetUserId(), cancellationToken);
-        return File(Encoding.UTF8.GetBytes(response.Content), ResolveContentType(response.FileName), response.FileName);
-    }
+        var bytes = ArtifactExportFileMetadata.IsBinary(response.Format)
+            ? Convert.FromBase64String(response.Content)
+            : Encoding.UTF8.GetBytes(response.Content);
 
-    private static string ResolveContentType(string fileName)
-    {
-        var extension = Path.GetExtension(fileName).ToLowerInvariant();
-        return extension switch
-        {
-            ".md" => "text/markdown",
-            ".mmd" => "text/plain",
-            ".puml" => "text/plain",
-            ".json" => "application/json",
-            _ => "text/plain"
-        };
+        return File(bytes, response.ContentType, response.FileName);
     }
 }

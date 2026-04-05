@@ -1,5 +1,6 @@
 using Gci409.Application.Common;
 using Gci409.Application.Projects;
+using Gci409.Application.Artifacts;
 using Gci409.Domain.Projects;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,20 +37,35 @@ public sealed class ExportService(IGci409DbContext dbContext, ProjectService pro
                 join version in dbContext.ArtifactVersions.AsNoTracking() on exportRecord.ArtifactVersionId equals version.Id
                 join artifact in dbContext.GeneratedArtifacts.AsNoTracking() on version.GeneratedArtifactId equals artifact.Id
                 where exportRecord.Id == exportId
-                select new ExportDetailResponse(
+                select new
+                {
                     exportRecord.Id,
                     exportRecord.ArtifactVersionId,
-                    artifact.Id,
+                    GeneratedArtifactId = artifact.Id,
                     artifact.ProjectId,
                     exportRecord.Format,
                     exportRecord.Status,
                     exportRecord.FileName,
                     exportRecord.Content,
-                    exportRecord.CreatedAtUtc))
+                    exportRecord.CreatedAtUtc
+                })
             .SingleOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException("Export was not found.");
 
-        await projectService.EnsureProjectAccessAsync(export.ProjectId, userId, ProjectRole.Viewer, cancellationToken);
-        return export;
+        var response = new ExportDetailResponse(
+            export.Id,
+            export.ArtifactVersionId,
+            export.GeneratedArtifactId,
+            export.ProjectId,
+            export.Format,
+            export.Status,
+            export.FileName,
+            export.Content,
+            ArtifactExportFileMetadata.ResolveContentType(export.Format, export.FileName),
+            ArtifactExportFileMetadata.ResolveContentEncoding(export.Format),
+            export.CreatedAtUtc);
+
+        await projectService.EnsureProjectAccessAsync(response.ProjectId, userId, ProjectRole.Viewer, cancellationToken);
+        return response;
     }
 }

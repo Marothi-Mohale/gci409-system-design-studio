@@ -99,6 +99,9 @@ export type ExportResponse = {
   id: string;
   format: number;
   fileName: string;
-  content: string;
+  content?: string | null;
+  contentType: string;
+  contentEncoding?: string | null;
+  downloadUrl: string;
   createdAtUtc: string;
 };
