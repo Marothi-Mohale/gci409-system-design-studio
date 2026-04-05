@@ -75,12 +75,14 @@ public sealed class GenerationService(
 
         try
         {
-            var drafts = artifactGenerationEngine.Generate(new ArtifactGenerationInput(
-                project.Name,
-                requirementVersion.Summary,
-                requirementVersion.Requirements.Select(x => $"{x.Title}. {x.Description}").ToList(),
-                requirementVersion.Constraints.Select(x => $"{x.Title}. {x.Description}").ToList(),
-                request.Targets.Select(x => x.ArtifactKind).ToList()));
+            var drafts = await artifactGenerationEngine.GenerateAsync(
+                new ArtifactGenerationInput(
+                    project.Name,
+                    requirementVersion.Summary,
+                    requirementVersion.Requirements.Select(x => $"{x.Title}. {x.Description}").ToList(),
+                    requirementVersion.Constraints.Select(x => $"{x.Title}. {x.Description}").ToList(),
+                    request.Targets.Select(x => x.ArtifactKind).ToList()),
+                cancellationToken);
 
             foreach (var draft in drafts)
             {

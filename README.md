@@ -51,6 +51,7 @@ tests/
 - project and platform audit log access
 - platform admin user management and role visibility
 - health check endpoint at `/health`
+- OpenAI-assisted recommendation and artifact generation with local fallback when the API is not configured
 
 ## Key API Areas
 
@@ -113,6 +114,21 @@ Important settings:
 - `Jwt:Audience`
 - `Jwt:SigningKey`
 - `Jwt:ExpiryMinutes`
+- `OpenAI:Enabled`
+- `OpenAI:ApiKey`
+- `OpenAI:RecommendationModel`
+- `OpenAI:GenerationModel`
+- `OpenAI:Temperature`
+- `OpenAI:RequestTimeoutSeconds`
+
+To enable model-assisted design generation, set:
+
+```bash
+OpenAI__Enabled=true
+OpenAI__ApiKey=<your-openai-api-key>
+```
+
+The backend and worker will then use the OpenAI API for recommendation and artifact generation. If OpenAI is disabled, not configured, or the upstream call fails, `gci409` falls back to the local rule-based engines so the app remains functional.
 
 ## Notes on Security
 
@@ -144,4 +160,4 @@ The backend follows a clean-architecture modular monolith approach:
 - infrastructure concerns stay in `Gci409.Infrastructure`
 - API and worker hosts remain thin
 
-Artifact generation and recommendation logic are exposed behind interfaces so the current rule-based implementation can evolve toward richer rule packs or model-assisted generation without rewriting the rest of the system.
+Artifact generation and recommendation logic are exposed behind interfaces. The current runtime uses a hybrid approach: OpenAI performs the heavy document and diagram drafting when configured, while the local rule-based engine remains available as a resilience and offline fallback.

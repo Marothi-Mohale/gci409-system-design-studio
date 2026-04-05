@@ -28,11 +28,13 @@ public sealed class RecommendationService(
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new ValidationException("Capture requirements before generating recommendations.");
 
-        var drafts = recommendationEngine.Recommend(new RecommendationInput(
-            project.Name,
-            requirementSetVersion.Summary,
-            requirementSetVersion.Requirements.Select(x => $"{x.Title}. {x.Description}").ToList(),
-            requirementSetVersion.Constraints.Select(x => $"{x.Title}. {x.Description}").ToList()));
+        var drafts = await recommendationEngine.RecommendAsync(
+            new RecommendationInput(
+                project.Name,
+                requirementSetVersion.Summary,
+                requirementSetVersion.Requirements.Select(x => $"{x.Title}. {x.Description}").ToList(),
+                requirementSetVersion.Constraints.Select(x => $"{x.Title}. {x.Description}").ToList()),
+            cancellationToken);
 
         var recommendationSet = RecommendationSet.Create(
             projectId,

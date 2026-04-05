@@ -23,7 +23,7 @@ public sealed class RuleBasedArtifactRecommendationEngine : IArtifactRecommendat
         [ArtifactKind.DatabaseDesignSuggestion] = ["database", "data", "query", "schema", "storage"]
     };
 
-    public IReadOnlyCollection<ArtifactRecommendationDraft> Recommend(RecommendationInput input)
+    public Task<IReadOnlyCollection<ArtifactRecommendationDraft>> RecommendAsync(RecommendationInput input, CancellationToken cancellationToken = default)
     {
         var corpus = string.Join(" ", input.RequirementDescriptions.Concat(input.ConstraintDescriptions).Append(input.RequirementSummary)).ToLowerInvariant();
         var recommendations = new List<ArtifactRecommendationDraft>();
@@ -57,10 +57,12 @@ public sealed class RuleBasedArtifactRecommendationEngine : IArtifactRecommendat
                 strength));
         }
 
-        return recommendations
+        IReadOnlyCollection<ArtifactRecommendationDraft> results = recommendations
             .OrderByDescending(x => x.ConfidenceScore)
             .ThenBy(x => x.ArtifactKind)
             .ToList();
+
+        return Task.FromResult(results);
     }
 
     private static string BuildRationale(ArtifactKind artifactKind, int hits)

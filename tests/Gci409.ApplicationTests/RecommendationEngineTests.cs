@@ -9,7 +9,7 @@ public sealed class RecommendationEngineTests
     private readonly RuleBasedArtifactRecommendationEngine _engine = new();
 
     [Fact]
-    public void Recommend_ShouldPrioritizeInteractionArtifacts_WhenActorSignalsExist()
+    public async Task Recommend_ShouldPrioritizeInteractionArtifacts_WhenActorSignalsExist()
     {
         var input = new RecommendationInput(
             "Claims Platform",
@@ -20,7 +20,7 @@ public sealed class RecommendationEngineTests
             ],
             ["The solution must integrate with external policy services."]);
 
-        var results = _engine.Recommend(input);
+        var results = await _engine.RecommendAsync(input);
 
         Assert.Contains(results, x => x.ArtifactKind == ArtifactKind.UseCaseDiagram);
         Assert.Contains(results, x => x.ArtifactKind == ArtifactKind.ActivityDiagram);

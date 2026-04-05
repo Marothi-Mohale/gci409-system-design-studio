@@ -27,6 +27,12 @@ services:
       Jwt__Audience: gci409-client
       Jwt__SigningKey: local-development-signing-key-change-in-production-123456
       Jwt__ExpiryMinutes: 60
+      OpenAI__Enabled: ${OPENAI_ENABLED:-false}
+      OpenAI__ApiKey: ${OPENAI_API_KEY:-}
+      OpenAI__RecommendationModel: ${OPENAI_RECOMMENDATION_MODEL:-gpt-4.1-mini}
+      OpenAI__GenerationModel: ${OPENAI_GENERATION_MODEL:-gpt-4.1}
+      OpenAI__Temperature: ${OPENAI_TEMPERATURE:-0.2}
+      OpenAI__RequestTimeoutSeconds: ${OPENAI_REQUEST_TIMEOUT_SECONDS:-120}
     depends_on:
       postgres:
         condition: service_healthy
@@ -43,6 +49,12 @@ services:
       Jwt__Audience: gci409-client
       Jwt__SigningKey: local-development-signing-key-change-in-production-123456
       Jwt__ExpiryMinutes: 60
+      OpenAI__Enabled: ${OPENAI_ENABLED:-false}
+      OpenAI__ApiKey: ${OPENAI_API_KEY:-}
+      OpenAI__RecommendationModel: ${OPENAI_RECOMMENDATION_MODEL:-gpt-4.1-mini}
+      OpenAI__GenerationModel: ${OPENAI_GENERATION_MODEL:-gpt-4.1}
+      OpenAI__Temperature: ${OPENAI_TEMPERATURE:-0.2}
+      OpenAI__RequestTimeoutSeconds: ${OPENAI_REQUEST_TIMEOUT_SECONDS:-120}
     depends_on:
       postgres:
         condition: service_healthy

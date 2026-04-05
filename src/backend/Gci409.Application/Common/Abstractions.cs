@@ -75,7 +75,7 @@ public interface ICorrelationContextAccessor
 
 public interface IArtifactRecommendationEngine
 {
-    IReadOnlyCollection<ArtifactRecommendationDraft> Recommend(RecommendationInput input);
+    Task<IReadOnlyCollection<ArtifactRecommendationDraft>> RecommendAsync(RecommendationInput input, CancellationToken cancellationToken = default);
 }
 
 public interface IRequirementBaselineBootstrapper
@@ -85,7 +85,7 @@ public interface IRequirementBaselineBootstrapper
 
 public interface IArtifactGenerationEngine
 {
-    IReadOnlyCollection<ArtifactDraft> Generate(ArtifactGenerationInput input);
+    Task<IReadOnlyCollection<ArtifactDraft>> GenerateAsync(ArtifactGenerationInput input, CancellationToken cancellationToken = default);
 }
 
 public interface IArtifactExportContentResolver

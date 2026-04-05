@@ -7,9 +7,9 @@ namespace Gci409.Infrastructure.Generation;
 
 public sealed class RuleBasedArtifactGenerationEngine : IArtifactGenerationEngine
 {
-    public IReadOnlyCollection<ArtifactDraft> Generate(ArtifactGenerationInput input)
+    public Task<IReadOnlyCollection<ArtifactDraft>> GenerateAsync(ArtifactGenerationInput input, CancellationToken cancellationToken = default)
     {
-        return input.ArtifactKinds.Distinct().Select(kind => kind switch
+        IReadOnlyCollection<ArtifactDraft> results = input.ArtifactKinds.Distinct().Select(kind => kind switch
         {
             ArtifactKind.UseCaseDiagram => BuildUseCase(input),
             ArtifactKind.ClassDiagram => BuildClassDiagram(input),
@@ -26,6 +26,8 @@ public sealed class RuleBasedArtifactGenerationEngine : IArtifactGenerationEngin
             ArtifactKind.DatabaseDesignSuggestion => BuildDatabaseSuggestion(),
             _ => BuildArchitectureSummary(input)
         }).ToList();
+
+        return Task.FromResult(results);
     }
 
     private static ArtifactDraft BuildUseCase(ArtifactGenerationInput input)
