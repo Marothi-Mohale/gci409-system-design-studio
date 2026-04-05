@@ -34,6 +34,33 @@ public sealed class CommentThread : AuditableEntity, IAggregateRoot
     public CommentStatus Status { get; private set; }
 
     public IReadOnlyCollection<Comment> Comments => _comments;
+
+    public static CommentThread Create(Guid projectId, CommentTargetType targetType, Guid targetId, Guid createdByUserId, DateTimeOffset createdAtUtc)
+    {
+        return new CommentThread
+        {
+            ProjectId = projectId,
+            TargetType = targetType,
+            TargetId = targetId,
+            Status = CommentStatus.Open,
+            CreatedByUserId = createdByUserId,
+            CreatedAtUtc = createdAtUtc
+        };
+    }
+
+    public Comment AddComment(string body, Guid createdByUserId, DateTimeOffset createdAtUtc)
+    {
+        var comment = Comment.Create(Id, body, createdByUserId, createdAtUtc);
+        _comments.Add(comment);
+        Touch(createdByUserId, createdAtUtc);
+        return comment;
+    }
+
+    public void Resolve(Guid modifiedByUserId, DateTimeOffset modifiedAtUtc)
+    {
+        Status = CommentStatus.Resolved;
+        Touch(modifiedByUserId, modifiedAtUtc);
+    }
 }
 
 public sealed class Comment : AuditableEntity
@@ -45,4 +72,15 @@ public sealed class Comment : AuditableEntity
     public Guid CommentThreadId { get; private set; }
 
     public string Body { get; private set; } = string.Empty;
+
+    public static Comment Create(Guid commentThreadId, string body, Guid createdByUserId, DateTimeOffset createdAtUtc)
+    {
+        return new Comment
+        {
+            CommentThreadId = commentThreadId,
+            Body = body.Trim(),
+            CreatedByUserId = createdByUserId,
+            CreatedAtUtc = createdAtUtc
+        };
+    }
 }

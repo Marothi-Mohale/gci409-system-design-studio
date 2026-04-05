@@ -30,6 +30,10 @@ public sealed class RequirementService(
         {
             await dbContext.RequirementSets.AddAsync(requirementSet, cancellationToken);
         }
+        else
+        {
+            requirementSet.UpdateMetadata(request.Name, request.Summary, userId, clock.UtcNow);
+        }
 
         var requirements = request.Requirements
             .Select(x => RequirementItem.Create(x.Code, x.Title, x.Description, x.Type, x.Priority))

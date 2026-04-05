@@ -62,6 +62,12 @@ public sealed class User : AuditableEntity, IAggregateRoot
         Touch(modifiedByUserId, modifiedAtUtc);
     }
 
+    public void SetStatus(UserStatus status, Guid? modifiedByUserId, DateTimeOffset modifiedAtUtc)
+    {
+        Status = status;
+        Touch(modifiedByUserId, modifiedAtUtc);
+    }
+
     public RefreshToken IssueRefreshToken(string tokenHash, DateTimeOffset expiresAtUtc, Guid? createdByUserId, DateTimeOffset createdAtUtc)
     {
         var refreshToken = RefreshToken.Create(Id, tokenHash, expiresAtUtc, createdByUserId, createdAtUtc);
@@ -118,6 +124,18 @@ public sealed class Role : AuditableEntity, IAggregateRoot
     public RoleScope Scope { get; private set; }
 
     public IReadOnlyCollection<RolePermission> Permissions => _permissions;
+
+    public static Role Create(string name, string description, RoleScope scope, Guid? createdByUserId, DateTimeOffset createdAtUtc)
+    {
+        return new Role
+        {
+            Name = name.Trim(),
+            Description = description.Trim(),
+            Scope = scope,
+            CreatedByUserId = createdByUserId,
+            CreatedAtUtc = createdAtUtc
+        };
+    }
 }
 
 public sealed class Permission : AuditableEntity, IAggregateRoot
@@ -129,6 +147,17 @@ public sealed class Permission : AuditableEntity, IAggregateRoot
     public string Code { get; private set; } = string.Empty;
 
     public string Description { get; private set; } = string.Empty;
+
+    public static Permission Create(string code, string description, Guid? createdByUserId, DateTimeOffset createdAtUtc)
+    {
+        return new Permission
+        {
+            Code = code.Trim(),
+            Description = description.Trim(),
+            CreatedByUserId = createdByUserId,
+            CreatedAtUtc = createdAtUtc
+        };
+    }
 }
 
 public sealed class RolePermission : Entity
@@ -140,6 +169,15 @@ public sealed class RolePermission : Entity
     public Guid RoleId { get; private set; }
 
     public Guid PermissionId { get; private set; }
+
+    public static RolePermission Create(Guid roleId, Guid permissionId)
+    {
+        return new RolePermission
+        {
+            RoleId = roleId,
+            PermissionId = permissionId
+        };
+    }
 }
 
 public sealed class PlatformRoleAssignment : AuditableEntity
@@ -151,4 +189,15 @@ public sealed class PlatformRoleAssignment : AuditableEntity
     public Guid UserId { get; private set; }
 
     public Guid RoleId { get; private set; }
+
+    public static PlatformRoleAssignment Create(Guid userId, Guid roleId, Guid? createdByUserId, DateTimeOffset createdAtUtc)
+    {
+        return new PlatformRoleAssignment
+        {
+            UserId = userId,
+            RoleId = roleId,
+            CreatedByUserId = createdByUserId,
+            CreatedAtUtc = createdAtUtc
+        };
+    }
 }

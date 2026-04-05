@@ -13,7 +13,7 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenSer
 {
     private readonly JwtOptions _jwtOptions = options.Value;
 
-    public JwtTokenResult CreateTokens(User user)
+    public JwtTokenResult CreateTokens(User user, IReadOnlyCollection<string> platformRoles)
     {
         var expiresAt = DateTimeOffset.UtcNow.AddMinutes(_jwtOptions.ExpiryMinutes);
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SigningKey));
@@ -24,6 +24,8 @@ public sealed class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenSer
             new(JwtRegisteredClaimNames.Email, user.Email),
             new("name", user.FullName)
         };
+
+        claims.AddRange(platformRoles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var token = new JwtSecurityToken(
             issuer: _jwtOptions.Issuer,

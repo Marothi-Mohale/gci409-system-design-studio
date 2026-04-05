@@ -30,4 +30,18 @@ public sealed class ProjectsController(ProjectService projectService) : Controll
         var project = await projectService.GetAsync(projectId, User.GetUserId(), cancellationToken);
         return Ok(project);
     }
+
+    [HttpPatch("{projectId:guid}")]
+    public async Task<ActionResult<ProjectDetail>> Update(Guid projectId, UpdateProjectRequest request, CancellationToken cancellationToken)
+    {
+        var response = await projectService.UpdateAsync(projectId, User.GetUserId(), request, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpDelete("{projectId:guid}")]
+    public async Task<IActionResult> Archive(Guid projectId, CancellationToken cancellationToken)
+    {
+        await projectService.ArchiveAsync(projectId, User.GetUserId(), cancellationToken);
+        return NoContent();
+    }
 }

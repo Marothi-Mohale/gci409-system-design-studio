@@ -109,6 +109,12 @@ public sealed class GeneratedArtifact : AuditableEntity, IAggregateRoot
     {
         UmlProfile ??= UmlArtifactProfile.Create(Id, diagramType);
     }
+
+    public void SetStatus(ArtifactStatus status, Guid modifiedByUserId, DateTimeOffset modifiedAtUtc)
+    {
+        Status = status;
+        Touch(modifiedByUserId, modifiedAtUtc);
+    }
 }
 
 public sealed class UmlArtifactProfile : Entity

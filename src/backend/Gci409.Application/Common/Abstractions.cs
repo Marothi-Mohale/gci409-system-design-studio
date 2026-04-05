@@ -1,5 +1,6 @@
 using Gci409.Domain.Artifacts;
 using Gci409.Domain.Audit;
+using Gci409.Domain.Collaboration;
 using Gci409.Domain.Generation;
 using Gci409.Domain.Identity;
 using Gci409.Domain.Projects;
@@ -16,6 +17,7 @@ public interface IGci409DbContext
     DbSet<RefreshToken> RefreshTokens { get; }
     DbSet<Role> Roles { get; }
     DbSet<Permission> Permissions { get; }
+    DbSet<RolePermission> RolePermissions { get; }
     DbSet<PlatformRoleAssignment> PlatformRoleAssignments { get; }
     DbSet<Project> Projects { get; }
     DbSet<ProjectMembership> ProjectMemberships { get; }
@@ -33,6 +35,8 @@ public interface IGci409DbContext
     DbSet<TemplateVersion> TemplateVersions { get; }
     DbSet<GenerationRule> GenerationRules { get; }
     DbSet<GenerationRuleVersion> GenerationRuleVersions { get; }
+    DbSet<CommentThread> CommentThreads { get; }
+    DbSet<Comment> Comments { get; }
     DbSet<AuditLog> AuditLogs { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
@@ -45,7 +49,7 @@ public interface IPasswordService
 
 public interface IJwtTokenService
 {
-    JwtTokenResult CreateTokens(User user);
+    JwtTokenResult CreateTokens(User user, IReadOnlyCollection<string> platformRoles);
 }
 
 public interface IAuditWriter
@@ -58,6 +62,16 @@ public interface IClock
     DateTimeOffset UtcNow { get; }
 }
 
+public interface IRefreshTokenProtector
+{
+    string Hash(string refreshToken);
+}
+
+public interface ICorrelationContextAccessor
+{
+    string? CorrelationId { get; set; }
+}
+
 public interface IArtifactRecommendationEngine
 {
     IReadOnlyCollection<ArtifactRecommendationDraft> Recommend(RecommendationInput input);
@@ -66,6 +80,11 @@ public interface IArtifactRecommendationEngine
 public interface IArtifactGenerationEngine
 {
     IReadOnlyCollection<ArtifactDraft> Generate(ArtifactGenerationInput input);
+}
+
+public interface IArtifactExportContentResolver
+{
+    string ResolveContent(ArtifactVersion version, OutputFormat format);
 }
 
 public sealed record JwtTokenResult(string AccessToken, string RefreshToken, DateTimeOffset ExpiresAtUtc);

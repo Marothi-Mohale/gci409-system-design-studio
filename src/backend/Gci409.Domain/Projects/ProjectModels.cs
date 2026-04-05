@@ -57,7 +57,7 @@ public sealed class Project : AuditableEntity, IAggregateRoot
             CreatedAtUtc = createdAtUtc
         };
 
-        project._memberships.Add(ProjectMembership.Create(project.Id, ownerUserId, ProjectRole.Owner, createdAtUtc));
+        project._memberships.Add(ProjectMembership.Create(project.Id, ownerUserId, ProjectRole.Owner, ownerUserId, createdAtUtc));
         return project;
     }
 
@@ -66,6 +66,27 @@ public sealed class Project : AuditableEntity, IAggregateRoot
         Name = name.Trim();
         Description = description.Trim();
         Touch(modifiedByUserId, modifiedAtUtc);
+    }
+
+    public void Archive(Guid modifiedByUserId, DateTimeOffset modifiedAtUtc)
+    {
+        Status = ProjectStatus.Archived;
+        Touch(modifiedByUserId, modifiedAtUtc);
+    }
+
+    public ProjectMembership AddMembership(Guid userId, ProjectRole role, Guid addedByUserId, DateTimeOffset createdAtUtc)
+    {
+        var existingMembership = _memberships.SingleOrDefault(x => x.UserId == userId);
+        if (existingMembership is not null)
+        {
+            existingMembership.SetRole(role, addedByUserId, createdAtUtc);
+            return existingMembership;
+        }
+
+        var membership = ProjectMembership.Create(Id, userId, role, addedByUserId, createdAtUtc);
+        _memberships.Add(membership);
+        Touch(addedByUserId, createdAtUtc);
+        return membership;
     }
 }
 
@@ -83,7 +104,7 @@ public sealed class ProjectMembership : AuditableEntity
 
     public MembershipStatus Status { get; private set; }
 
-    public static ProjectMembership Create(Guid projectId, Guid userId, ProjectRole role, DateTimeOffset createdAtUtc)
+    public static ProjectMembership Create(Guid projectId, Guid userId, ProjectRole role, Guid createdByUserId, DateTimeOffset createdAtUtc)
     {
         return new ProjectMembership
         {
@@ -91,8 +112,21 @@ public sealed class ProjectMembership : AuditableEntity
             UserId = userId,
             Role = role,
             Status = MembershipStatus.Active,
-            CreatedByUserId = userId,
+            CreatedByUserId = createdByUserId,
             CreatedAtUtc = createdAtUtc
         };
+    }
+
+    public void SetRole(ProjectRole role, Guid modifiedByUserId, DateTimeOffset modifiedAtUtc)
+    {
+        Role = role;
+        Status = MembershipStatus.Active;
+        Touch(modifiedByUserId, modifiedAtUtc);
+    }
+
+    public void Remove(Guid modifiedByUserId, DateTimeOffset modifiedAtUtc)
+    {
+        Status = MembershipStatus.Removed;
+        Touch(modifiedByUserId, modifiedAtUtc);
     }
 }

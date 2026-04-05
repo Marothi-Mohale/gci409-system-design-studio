@@ -68,6 +68,13 @@ public sealed class RequirementSet : AuditableEntity, IAggregateRoot
         };
     }
 
+    public void UpdateMetadata(string name, string overview, Guid modifiedByUserId, DateTimeOffset modifiedAtUtc)
+    {
+        Name = name.Trim();
+        Overview = overview.Trim();
+        Touch(modifiedByUserId, modifiedAtUtc);
+    }
+
     public RequirementSetVersion AddVersion(
         string summary,
         IEnumerable<RequirementItem> requirements,

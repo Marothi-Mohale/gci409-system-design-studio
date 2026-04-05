@@ -14,7 +14,7 @@ public sealed class AuthController(AuthService authService) : ControllerBase
     public async Task<ActionResult<AuthResponse>> Register(RegisterUserRequest request, CancellationToken cancellationToken)
     {
         var response = await authService.RegisterAsync(request, cancellationToken);
-        return Ok(response);
+        return Created("/api/me", response);
     }
 
     [HttpPost("login")]

@@ -12,6 +12,18 @@ public sealed class ForbiddenException(string message) : ApplicationExceptionBas
 {
 }
 
-public sealed class ValidationException(string message) : ApplicationExceptionBase(message)
+public sealed class ValidationException : ApplicationExceptionBase
 {
+    public ValidationException(string message)
+        : base(message)
+    {
+    }
+
+    public ValidationException(IReadOnlyDictionary<string, string[]> errors)
+        : base("One or more validation errors occurred.")
+    {
+        Errors = errors;
+    }
+
+    public IReadOnlyDictionary<string, string[]>? Errors { get; }
 }

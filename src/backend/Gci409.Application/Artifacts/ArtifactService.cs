@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Gci409.Application.Common;
 using Gci409.Application.Projects;
 using Gci409.Domain.Artifacts;
@@ -10,6 +9,7 @@ namespace Gci409.Application.Artifacts;
 public sealed class ArtifactService(
     IGci409DbContext dbContext,
     ProjectService projectService,
+    IArtifactExportContentResolver artifactExportContentResolver,
     IAuditWriter auditWriter,
     IClock clock)
 {
@@ -47,7 +47,7 @@ public sealed class ArtifactService(
 
         await projectService.EnsureProjectAccessAsync(version.GeneratedArtifact.ProjectId, userId, ProjectRole.Viewer, cancellationToken);
 
-        var content = ResolveContent(version, request.Format);
+        var content = artifactExportContentResolver.ResolveContent(version, request.Format);
         var fileName = $"{version.GeneratedArtifact.Title.Replace(' ', '-')}-v{version.VersionNumber}.{ResolveExtension(request.Format)}";
         var export = version.AddExport(request.Format, fileName, content, userId, clock.UtcNow);
 
@@ -55,26 +55,6 @@ public sealed class ArtifactService(
         await auditWriter.WriteAsync(userId, version.GeneratedArtifact.ProjectId, "artifact.exported", nameof(ArtifactExport), export.Id.ToString(), $"Exported artifact version {version.VersionNumber} as {request.Format}.", cancellationToken: cancellationToken);
 
         return new ExportResponse(export.Id, export.Format, export.FileName, export.Content, export.CreatedAtUtc);
-    }
-
-    private static string ResolveContent(ArtifactVersion version, OutputFormat format)
-    {
-        if (version.PrimaryFormat == format)
-        {
-            return version.Content;
-        }
-
-        if (string.IsNullOrWhiteSpace(version.RepresentationsJson))
-        {
-            throw new ValidationException($"Artifact version cannot be exported as {format}.");
-        }
-
-        var representations = JsonSerializer.Deserialize<Dictionary<string, string>>(version.RepresentationsJson)
-            ?? throw new ValidationException($"Artifact version cannot be exported as {format}.");
-
-        return representations.TryGetValue(format.ToString(), out var content)
-            ? content
-            : throw new ValidationException($"Artifact version cannot be exported as {format}.");
     }
 
     private static string ResolveExtension(OutputFormat format)

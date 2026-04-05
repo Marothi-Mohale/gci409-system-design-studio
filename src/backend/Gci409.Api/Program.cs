@@ -1,21 +1,46 @@
+using System.Security.Claims;
 using System.Text;
+using FluentValidation;
+using FluentValidation.AspNetCore;
+using Gci409.Api.Infrastructure;
 using Gci409.Application;
+using Gci409.Application.Auth;
 using Gci409.Infrastructure;
 using Gci409.Infrastructure.Persistence;
 using Gci409.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .ReadFrom.Services(services)
+        .Enrich.FromLogContext();
+});
+
 builder.Services.AddControllers();
+builder.Services.AddFluentValidationAutoValidation(configuration =>
+{
+    configuration.DisableDataAnnotationsValidation = true;
+});
+builder.Services.AddFluentValidationClientsideAdapters();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterUserRequestValidator>();
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddHealthChecks();
+builder.Services.AddGci409Swagger();
+builder.Services.AddProblemDetails();
+builder.Services.AddHealthChecks().AddCheck<PostgresHealthCheck>("postgresql");
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
-var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>() ?? new JwtOptions();
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+    ?? throw new InvalidOperationException("JWT options are not configured.");
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -28,11 +53,15 @@ builder.Services
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtOptions.Issuer,
             ValidAudience = jwtOptions.Audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey)),
+            RoleClaimType = ClaimTypes.Role
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("PlatformAdmin", policy => policy.RequireRole("PlatformAdmin"));
+});
 
 var app = builder.Build();
 
@@ -42,29 +71,9 @@ await using (var scope = app.Services.CreateAsyncScope())
     await dbContext.Database.EnsureCreatedAsync();
 }
 
-app.UseExceptionHandler(exceptionHandler =>
-{
-    exceptionHandler.Run(async context =>
-    {
-        var error = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
-        var statusCode = error switch
-        {
-            Gci409.Application.Common.ValidationException => StatusCodes.Status400BadRequest,
-            Gci409.Application.Common.NotFoundException => StatusCodes.Status404NotFound,
-            Gci409.Application.Common.ForbiddenException => StatusCodes.Status403Forbidden,
-            _ => StatusCodes.Status500InternalServerError
-        };
-
-        context.Response.StatusCode = statusCode;
-        context.Response.ContentType = "application/json";
-        await context.Response.WriteAsJsonAsync(new
-        {
-            title = "Request failed",
-            status = statusCode,
-            detail = error?.Message ?? "An unexpected error occurred."
-        });
-    });
-});
+app.UseSerilogRequestLogging();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<ProblemDetailsExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
@@ -79,3 +88,5 @@ app.MapHealthChecks("/health");
 app.MapControllers();
 
 app.Run();
+
+public partial class Program;
