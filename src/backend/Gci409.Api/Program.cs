@@ -49,7 +49,22 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Frontend", policy =>
     {
         policy
-            .WithOrigins(corsOptions.AllowedOrigins)
+            .SetIsOriginAllowed(origin =>
+            {
+                if (corsOptions.AllowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                if (!builder.Environment.IsDevelopment() || !Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                {
+                    return false;
+                }
+
+                return uri.Scheme == Uri.UriSchemeHttp &&
+                       (uri.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+                        uri.Host.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase));
+            })
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -89,6 +104,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 app.UseSerilogRequestLogging();
+app.UseCors("Frontend");
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ProblemDetailsExceptionMiddleware>();
 
@@ -98,7 +114,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 

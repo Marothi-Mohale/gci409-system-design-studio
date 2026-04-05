@@ -59,7 +59,7 @@ public sealed class ArtifactPdfRenderer : IArtifactPdfRenderer
             if (currentPage.Count > 0 && usedHeight + nextHeight > availableHeight)
             {
                 pages.Add(currentPage);
-                currentPage = [];
+                currentPage = new List<PdfLine>();
                 usedHeight = 0f;
             }
 
@@ -67,12 +67,16 @@ public sealed class ArtifactPdfRenderer : IArtifactPdfRenderer
             usedHeight += nextHeight;
         }
 
-        if (currentPage.Count == 0)
+        if (currentPage.Count > 0)
         {
-            currentPage.Add(new PdfLine("No content available.", PdfLineStyle.Regular));
+            pages.Add(currentPage);
         }
 
-        pages.Add(currentPage);
+        if (pages.Count == 0)
+        {
+            pages.Add(new List<PdfLine> { new PdfLine("No content available.", PdfLineStyle.Regular) });
+        }
+
         return pages;
     }
 

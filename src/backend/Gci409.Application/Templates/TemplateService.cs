@@ -106,7 +106,9 @@ public sealed class TemplateService(
     {
         return supportedArtifactKindsCsv
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(x => (ArtifactKind)int.Parse(x))
+            .Select(x => int.TryParse(x, out var parsed) && Enum.IsDefined(typeof(ArtifactKind), parsed) ? (ArtifactKind?)parsed : null)
+            .Where(kind => kind.HasValue)
+            .Select(kind => kind!.Value)
             .ToList();
     }
 }

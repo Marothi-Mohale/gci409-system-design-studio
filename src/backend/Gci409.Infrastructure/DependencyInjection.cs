@@ -49,12 +49,12 @@ public static class DependencyInjection
         services.AddSingleton<IRequirementBaselineBootstrapper, ProjectBriefRequirementBaselineBootstrapper>();
         services.AddScoped<IArtifactExportContentResolver, ArtifactExportContentResolver>();
         services.AddSingleton<IArtifactPdfRenderer, ArtifactPdfRenderer>();
-        services.AddSingleton<RuleBasedArtifactRecommendationEngine>();
-        services.AddSingleton<OpenAiArtifactRecommendationEngine>();
-        services.AddSingleton<IArtifactRecommendationEngine, HybridArtifactRecommendationEngine>();
-        services.AddSingleton<RuleBasedArtifactGenerationEngine>();
-        services.AddSingleton<OpenAiArtifactGenerationEngine>();
-        services.AddSingleton<IArtifactGenerationEngine, HybridArtifactGenerationEngine>();
+        services.AddScoped<RuleBasedArtifactRecommendationEngine>();
+        services.AddScoped<OpenAiArtifactRecommendationEngine>();
+        services.AddScoped<IArtifactRecommendationEngine, HybridArtifactRecommendationEngine>();
+        services.AddScoped<RuleBasedArtifactGenerationEngine>();
+        services.AddScoped<OpenAiArtifactGenerationEngine>();
+        services.AddScoped<IArtifactGenerationEngine, HybridArtifactGenerationEngine>();
 
         return services;
     }

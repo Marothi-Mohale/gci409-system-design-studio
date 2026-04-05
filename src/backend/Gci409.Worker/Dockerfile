@@ -12,7 +12,7 @@ RUN dotnet restore src/backend/Gci409.Worker/Gci409.Worker.csproj
 COPY . .
 RUN dotnet publish src/backend/Gci409.Worker/Gci409.Worker.csproj -c Release -o /app/publish /p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/runtime:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "Gci409.Worker.dll"]

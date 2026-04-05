@@ -82,7 +82,7 @@ public sealed class ProjectService(IGci409DbContext dbContext, IAuditWriter audi
 
         return await dbContext.ProjectMemberships
             .AsNoTracking()
-            .Where(x => x.ProjectId == projectId)
+            .Where(x => x.ProjectId == projectId && x.Status == MembershipStatus.Active)
             .OrderBy(x => x.Role)
             .ThenBy(x => x.CreatedAtUtc)
             .Select(x => new ProjectMemberSummary(x.UserId, x.Role, x.Status))

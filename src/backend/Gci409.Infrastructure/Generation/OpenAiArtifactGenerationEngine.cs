@@ -18,21 +18,39 @@ internal sealed class OpenAiArtifactGenerationEngine(
 
     public async Task<IReadOnlyCollection<ArtifactDraft>> GenerateAsync(ArtifactGenerationInput input, CancellationToken cancellationToken = default)
     {
-        var payload = await openAiJsonClient.CompleteJsonAsync(
-            options.Value.GenerationModel,
-            BuildSystemPrompt(),
-            BuildUserPrompt(input),
-            cancellationToken);
+        var systemPrompt = BuildSystemPrompt();
+        var artifacts = new List<ArtifactDraft>();
 
-        var response = JsonSerializer.Deserialize<ArtifactGenerationResponsePayload>(payload, JsonOptions)
-            ?? throw new InvalidOperationException("OpenAI artifact generation response could not be parsed.");
+        // Generate each artifact kind with specialized prompts for better quality
+        foreach (var artifactKind in input.ArtifactKinds.Distinct())
+        {
+            try
+            {
+                var specializedUserPrompt = BuildSpecializedUserPrompt(artifactKind, input);
+                var payload = await openAiJsonClient.CompleteJsonAsync(
+                    options.Value.GenerationModel,
+                    systemPrompt,
+                    specializedUserPrompt,
+                    cancellationToken);
 
-        var artifacts = response.Artifacts?
-            .Select(MapArtifact)
-            .Where(x => x is not null)
-            .Cast<ArtifactDraft>()
-            .ToList()
-            ?? [];
+                var response = JsonSerializer.Deserialize<ArtifactGenerationResponsePayload>(payload, JsonOptions)
+                    ?? throw new InvalidOperationException("OpenAI artifact generation response could not be parsed.");
+
+                var generatedArtifacts = response.Artifacts?
+                    .Select(MapArtifact)
+                    .Where(x => x is not null)
+                    .Cast<ArtifactDraft>()
+                    .ToList()
+                    ?? [];
+
+                artifacts.AddRange(generatedArtifacts);
+            }
+            catch (Exception ex)
+            {
+                // Log but continue with other artifact kinds
+                System.Diagnostics.Debug.WriteLine($"Failed to generate {artifactKind}: {ex.Message}");
+            }
+        }
 
         if (artifacts.Count == 0)
         {
@@ -155,18 +173,30 @@ internal sealed class OpenAiArtifactGenerationEngine(
     {
         return """
 You are a principal software architect producing enterprise-grade system design artifacts.
-Generate concrete, implementation-useful documents and diagrams from the provided project requirements and constraints.
-Return strictly valid JSON and nothing else.
-For diagram artifacts, prefer syntactically valid notation over prose.
-For narrative artifacts, produce practical, high-quality Markdown that an architecture or delivery team could review directly.
-Make only minimal explicit assumptions when information is missing.
+Your expertise spans UML diagrams (PlantUml, Mermaid), architecture documentation, API/database design, and system patterns.
+
+CORE RESPONSIBILITIES:
+1. Generate concrete, implementation-useful artifacts from project requirements and constraints
+2. For diagrams: produce syntactically valid, parseable notation that renders correctly
+3. For documentation: provide practical Markdown with design decisions, assumptions, and rationale
+4. Make minimal assumptions when information is missing; note significant gaps in summaries
+
+QUALITY STANDARDS:
+- Diagrams must follow UML standards and tool syntax exactly
+- Content must be domain-specific, not generic templates
+- Reflect fintech, compliance, security, or audit requirements explicitly
+- Ensure relationships, dependencies, and constraints are clearly visible
+- Use meaningful naming conventions aligned with the project
+
+RESPONSE FORMAT:
+Always return valid JSON and nothing else. No preamble, no explanation, only JSON.
 """;
     }
 
     private static string BuildUserPrompt(ArtifactGenerationInput input)
     {
         var builder = new StringBuilder();
-        builder.AppendLine("Generate one artifact for each requested artifact kind.");
+        builder.AppendLine("Generate one artifact for each requested artifact kind (batch mode).");
         builder.AppendLine();
         builder.AppendLine($"Project: {input.ProjectName}");
         builder.AppendLine($"Requirement summary: {input.RequirementSummary}");
@@ -204,6 +234,40 @@ Make only minimal explicit assumptions when information is missing.
         "PlantUml": "@startuml ...",
         "Mermaid": "flowchart LR ..."
       }
+    }
+  ]
+}
+""");
+
+        return builder.ToString();
+    }
+
+    private static string BuildSpecializedUserPrompt(ArtifactKind artifactKind, ArtifactGenerationInput input)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine($"Generate a single {artifactKind} artifact with maximum quality and accuracy.");
+        builder.AppendLine();
+        builder.AppendLine(DiagramPromptBuilder.BuildSpecializedPrompt(
+            artifactKind,
+            input.ProjectName,
+            input.RequirementSummary,
+            input.RequirementDescriptions,
+            input.ConstraintDescriptions));
+        builder.AppendLine();
+        builder.AppendLine(DiagramPromptBuilder.BuildDiagramGuidance());
+        builder.AppendLine();
+        builder.AppendLine("Return JSON with this exact shape:");
+        builder.AppendLine("""
+{
+  "artifacts": [
+    {
+      "artifactKind": "ARTIFACT_KIND",
+      "title": "string",
+      "summary": "2-4 sentence summary",
+      "primaryFormat": "FORMAT",
+      "content": "notation or markdown",
+      "diagramType": "TYPE_or_null",
+      "representations": {}
     }
   ]
 }

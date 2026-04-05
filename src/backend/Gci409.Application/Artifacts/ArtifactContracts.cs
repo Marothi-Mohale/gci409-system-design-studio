@@ -26,3 +26,29 @@ public sealed class CreateExportRequestValidator : AbstractValidator<CreateExpor
         RuleFor(x => x.Format).IsInEnum();
     }
 }
+
+public static class ArtifactExportFileMetadata
+{
+    public static bool IsBinary(OutputFormat format)
+    {
+        return format == OutputFormat.Pdf || format == OutputFormat.Png;
+    }
+
+    public static string ResolveContentEncoding(OutputFormat format)
+    {
+        return IsBinary(format) ? "base64" : "utf-8";
+    }
+
+    public static string ResolveContentType(OutputFormat format, string fileName)
+    {
+        return format switch
+        {
+            OutputFormat.Pdf => "application/pdf",
+            OutputFormat.Markdown => "text/markdown",
+            OutputFormat.Mermaid => "text/plain",
+            OutputFormat.PlantUml => "text/plain",
+            OutputFormat.Png => "image/png",
+            _ => "application/octet-stream"
+        };
+    }
+}

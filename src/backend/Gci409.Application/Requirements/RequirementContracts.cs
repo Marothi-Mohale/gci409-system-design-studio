@@ -48,11 +48,11 @@ public sealed class SaveRequirementSetRequestValidator : AbstractValidator<SaveR
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Summary).NotEmpty().MaximumLength(4000);
-        RuleFor(x => x.Requirements).NotEmpty();
         RuleForEach(x => x.Requirements).SetValidator(new RequirementInputValidator());
         RuleForEach(x => x.Constraints).SetValidator(new ConstraintInputValidator());
         RuleFor(x => x.Requirements)
-            .Must(requirements => requirements.Select(x => x.Code.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() == requirements.Count)
+            .NotEmpty()
+            .Must(requirements => requirements != null && requirements.Select(x => x.Code.Trim()).Distinct(StringComparer.OrdinalIgnoreCase).Count() == requirements.Count)
             .WithMessage("Requirement codes must be unique within a requirement set version.");
     }
 }

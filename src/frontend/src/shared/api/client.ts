@@ -19,12 +19,17 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   let response: Response;
 
   try {
+    const headers: Record<string, string> = {
+      ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
+    };
+
+    if (options.body) {
+      headers["Content-Type"] = "application/json";
+    }
+
     response = await fetch(`${env.apiBaseUrl}${path}`, {
       method: options.method ?? "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.token ? { Authorization: `Bearer ${options.token}` } : {})
-      },
+      headers,
       body: options.body ? JSON.stringify(options.body) : undefined
     });
   } catch (error) {
@@ -34,22 +39,25 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     );
   }
 
+  const responseText = response.status === 204 ? "" : await response.text();
+
   if (!response.ok) {
     let message = `Request failed with status ${response.status}.`;
 
     try {
-      const problem = (await response.json()) as { detail?: string; title?: string; errors?: Record<string, string[]> };
-      const validationMessage = problem.errors
+      const problem = responseText
+        ? (JSON.parse(responseText) as { detail?: string; title?: string; errors?: Record<string, string[]> })
+        : undefined;
+      const validationMessage = problem?.errors
         ? Object.values(problem.errors)
             .flat()
             .find(Boolean)
         : undefined;
 
-      message = validationMessage ?? problem.detail ?? problem.title ?? message;
+      message = validationMessage ?? problem?.detail ?? problem?.title ?? message;
     } catch {
-      const fallback = await response.text();
-      if (fallback) {
-        message = fallback;
+      if (responseText) {
+        message = responseText;
       }
     }
 
@@ -60,5 +68,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     return undefined as T;
   }
 
-  return (await response.json()) as T;
+  if (!responseText) {
+    return undefined as T;
+  }
+
+  return JSON.parse(responseText) as T;
 }

@@ -12,6 +12,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 const storageKey = "gci409.session";
+let refreshPromise: Promise<AuthResponse | null> | null = null;
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<AuthResponse | null>(() => {
@@ -33,13 +34,28 @@ export function AuthProvider({ children }: PropsWithChildren) {
         return nextSession;
       },
       async refresh() {
-        if (!session?.refreshToken) {
+        const currentSession = session;
+        if (!currentSession?.refreshToken) {
           return null;
         }
 
-        const nextSession = await authApi.refresh({ refreshToken: session.refreshToken });
-        persistSession(nextSession, setSession);
-        return nextSession;
+        if (refreshPromise) {
+          return await refreshPromise;
+        }
+
+        refreshPromise = (async () => {
+          try {
+            const nextSession = await authApi.refresh({ refreshToken: currentSession.refreshToken });
+            persistSession(nextSession, setSession);
+            return nextSession;
+          } catch {
+            throw new Error("Unable to refresh authentication session.");
+          } finally {
+            refreshPromise = null;
+          }
+        })();
+
+        return await refreshPromise;
       },
       signOut() {
         localStorage.removeItem(storageKey);

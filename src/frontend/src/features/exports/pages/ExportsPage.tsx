@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import { useAuth } from "../../auth/context/AuthProvider";
 import { useWorkspaceSnapshot } from "../../projects/hooks/useWorkspaceSnapshot";
 import { artifactsApi } from "../../../shared/api/services/artifacts.api";
-import { artifactKindLabels, OutputFormat, outputFormatLabels } from "../../../shared/types/domain";
+import { ArtifactKind, artifactKindLabels, OutputFormat, outputFormatLabels } from "../../../shared/types/domain";
 import { downloadAuthenticatedFile } from "../../../shared/utils/downloads";
 import { EmptyState } from "../../../shared/ui/EmptyState";
 import { PageHeader } from "../../../shared/ui/PageHeader";
@@ -140,18 +140,22 @@ function getExportOptions(artifactKind: number, primaryFormat: number) {
   const formats = [OutputFormat.Pdf];
 
   if (
-    artifactKind === 1 ||
-    artifactKind === 2 ||
-    artifactKind === 3 ||
-    artifactKind === 4 ||
-    artifactKind === 5 ||
-    artifactKind === 6
+    artifactKind === ArtifactKind.UseCaseDiagram ||
+    artifactKind === ArtifactKind.ClassDiagram ||
+    artifactKind === ArtifactKind.SequenceDiagram ||
+    artifactKind === ArtifactKind.ActivityDiagram ||
+    artifactKind === ArtifactKind.ComponentDiagram ||
+    artifactKind === ArtifactKind.DeploymentDiagram
   ) {
     formats.push(OutputFormat.PlantUml, OutputFormat.Mermaid);
     return Array.from(new Set(formats));
   }
 
-  if (artifactKind === 7 || artifactKind === 8 || artifactKind === 9) {
+  if (
+    artifactKind === ArtifactKind.ContextDiagram ||
+    artifactKind === ArtifactKind.DataFlowDiagram ||
+    artifactKind === ArtifactKind.Erd
+  ) {
     formats.push(OutputFormat.Mermaid);
     return Array.from(new Set(formats));
   }
