@@ -1,0 +1,12 @@
+bin/
+obj/
+node_modules/
+dist/
+.appdata/
+.templateengine/
+.vs/
+.vscode/
+*.user
+*.suo
+*.db
+*.log

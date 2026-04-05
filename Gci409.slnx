@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/backend/">
+    <Project Path="src/backend/Gci409.Api/Gci409.Api.csproj" />
+    <Project Path="src/backend/Gci409.Application/Gci409.Application.csproj" />
+    <Project Path="src/backend/Gci409.Domain/Gci409.Domain.csproj" />
+    <Project Path="src/backend/Gci409.Infrastructure/Gci409.Infrastructure.csproj" />
+    <Project Path="src/backend/Gci409.Worker/Gci409.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Gci409.ApplicationTests/Gci409.ApplicationTests.csproj" />
+    <Project Path="tests/Gci409.ArchitectureTests/Gci409.ArchitectureTests.csproj" />
+  </Folder>
+</Solution>

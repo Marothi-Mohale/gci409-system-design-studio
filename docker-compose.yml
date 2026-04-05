@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: gci409
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: src/backend/Gci409.Api/Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://0.0.0.0:5099
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=gci409;Username=postgres;Password=postgres
+      Jwt__Issuer: gci409-api
+      Jwt__Audience: gci409-client
+      Jwt__SigningKey: local-development-signing-key-change-in-production-123456
+      Jwt__ExpiryMinutes: 60
+    depends_on:
+      - postgres
+    ports:
+      - "5099:5099"
+
+  worker:
+    build:
+      context: .
+      dockerfile: src/backend/Gci409.Worker/Dockerfile
+    environment:
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=gci409;Username=postgres;Password=postgres
+      Jwt__Issuer: gci409-api
+      Jwt__Audience: gci409-client
+      Jwt__SigningKey: local-development-signing-key-change-in-production-123456
+      Jwt__ExpiryMinutes: 60
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
