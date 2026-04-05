@@ -95,10 +95,16 @@ public sealed class GenerationService(
                     await dbContext.GeneratedArtifacts.AddAsync(artifact, cancellationToken);
                 }
 
-                artifact.AddVersion(draft.PrimaryFormat, draft.Summary, draft.Content, draft.RepresentationsJson, request.Id, request.CreatedByUserId ?? Guid.Empty, clock.UtcNow);
+                var version = artifact.AddVersion(draft.PrimaryFormat, draft.Summary, draft.Content, draft.RepresentationsJson, request.Id, request.CreatedByUserId ?? Guid.Empty, clock.UtcNow);
+                await dbContext.ArtifactVersions.AddAsync(version, cancellationToken);
                 if (draft.DiagramType != UmlDiagramType.None)
                 {
+                    var hadUmlProfile = artifact.UmlProfile is not null;
                     artifact.EnsureUmlProfile(draft.DiagramType);
+                    if (!hadUmlProfile && !isNew && artifact.UmlProfile is not null)
+                    {
+                        await dbContext.UmlArtifactProfiles.AddAsync(artifact.UmlProfile, cancellationToken);
+                    }
                 }
             }
 

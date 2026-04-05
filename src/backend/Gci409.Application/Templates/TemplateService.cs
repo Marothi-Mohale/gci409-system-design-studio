@@ -69,6 +69,7 @@ public sealed class TemplateService(
         await projectService.EnsureProjectAccessAsync(template.ProjectId.Value, userId, ProjectRole.Contributor, cancellationToken);
 
         var version = template.AddVersion(request.Content, request.ArtifactKinds.Select(x => (int)x).ToList(), userId, clock.UtcNow);
+        await dbContext.TemplateVersions.AddAsync(version, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         await auditWriter.WriteAsync(userId, template.ProjectId.Value, "template.version_created", nameof(TemplateVersion), version.Id.ToString(), $"Created template version {version.VersionNumber} for {template.Name}.", cancellationToken: cancellationToken);
 

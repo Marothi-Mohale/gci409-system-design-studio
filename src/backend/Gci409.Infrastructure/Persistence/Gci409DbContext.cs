@@ -80,7 +80,6 @@ public sealed class Gci409DbContext(DbContextOptions<Gci409DbContext> options) :
             builder.Property(x => x.TokenHash).HasMaxLength(512).IsRequired();
             builder.Property(x => x.ExpiresAtUtc).HasColumnType("timestamp with time zone");
             builder.Property(x => x.RevokedAtUtc).HasColumnType("timestamp with time zone");
-            builder.HasOne<User>().WithMany(x => x.RefreshTokens).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Role>(builder =>
@@ -117,7 +116,6 @@ public sealed class Gci409DbContext(DbContextOptions<Gci409DbContext> options) :
             ConfigureAuditableEntity(builder);
             builder.HasIndex(x => new { x.UserId, x.RoleId }).IsUnique();
             builder.HasIndex(x => x.RoleId);
-            builder.HasOne<User>().WithMany(x => x.PlatformRoleAssignments).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             builder.HasOne<Role>().WithMany().HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Restrict);
         });
     }
@@ -256,7 +254,6 @@ public sealed class Gci409DbContext(DbContextOptions<Gci409DbContext> options) :
         {
             builder.ToTable("uml_profiles", "artifacts");
             builder.HasIndex(x => x.DiagramType);
-            builder.HasOne<GeneratedArtifact>().WithOne(x => x.UmlProfile).HasForeignKey<UmlArtifactProfile>(x => x.GeneratedArtifactId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ArtifactVersion>(builder =>
@@ -269,7 +266,6 @@ public sealed class Gci409DbContext(DbContextOptions<Gci409DbContext> options) :
             builder.Property(x => x.Content).HasColumnType("text").IsRequired();
             builder.Property(x => x.RepresentationsJson).HasColumnName("representations_jsonb").HasColumnType("jsonb");
             builder.HasMany(x => x.Exports).WithOne().HasForeignKey(x => x.ArtifactVersionId).OnDelete(DeleteBehavior.Cascade);
-            builder.HasOne<GeneratedArtifact>().WithMany(x => x.Versions).HasForeignKey(x => x.GeneratedArtifactId).OnDelete(DeleteBehavior.Cascade);
             builder.HasOne<GenerationRequest>().WithMany().HasForeignKey(x => x.GenerationRequestId).OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -280,7 +276,6 @@ public sealed class Gci409DbContext(DbContextOptions<Gci409DbContext> options) :
             builder.HasIndex(x => new { x.ArtifactVersionId, x.Format, x.CreatedAtUtc });
             builder.Property(x => x.FileName).HasMaxLength(256).IsRequired();
             builder.Property(x => x.Content).HasColumnType("text").IsRequired();
-            builder.HasOne<ArtifactVersion>().WithMany(x => x.Exports).HasForeignKey(x => x.ArtifactVersionId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 

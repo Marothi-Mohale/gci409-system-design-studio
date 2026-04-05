@@ -58,7 +58,7 @@ public sealed class AuthService(
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
         var email = request.Email.Trim().ToLowerInvariant();
-        var user = await dbContext.Users.Include(x => x.RefreshTokens).SingleOrDefaultAsync(x => x.Email == email, cancellationToken)
+        var user = await dbContext.Users.SingleOrDefaultAsync(x => x.Email == email, cancellationToken)
             ?? throw new NotFoundException("The email address or password is incorrect.");
 
         if (!passwordService.VerifyPassword(user, request.Password, user.PasswordHash))
@@ -73,7 +73,8 @@ public sealed class AuthService(
 
         var platformRoles = await GetPlatformRoleNamesAsync(user.Id, cancellationToken);
         var tokens = jwtTokenService.CreateTokens(user, platformRoles);
-        user.IssueRefreshToken(refreshTokenProtector.Hash(tokens.RefreshToken), clock.UtcNow.AddDays(14), user.Id, clock.UtcNow);
+        var nextRefreshToken = user.IssueRefreshToken(refreshTokenProtector.Hash(tokens.RefreshToken), clock.UtcNow.AddDays(14), user.Id, clock.UtcNow);
+        await dbContext.RefreshTokens.AddAsync(nextRefreshToken, cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
         await auditWriter.WriteAsync(user.Id, null, "user.logged_in", nameof(User), user.Id.ToString(), $"User {user.Email} logged in.", cancellationToken: cancellationToken);
@@ -98,7 +99,8 @@ public sealed class AuthService(
         currentToken.Revoke(clock.UtcNow, user.Id);
         var platformRoles = await GetPlatformRoleNamesAsync(user.Id, cancellationToken);
         var tokens = jwtTokenService.CreateTokens(user, platformRoles);
-        user.IssueRefreshToken(refreshTokenProtector.Hash(tokens.RefreshToken), clock.UtcNow.AddDays(14), user.Id, clock.UtcNow);
+        var nextRefreshToken = user.IssueRefreshToken(refreshTokenProtector.Hash(tokens.RefreshToken), clock.UtcNow.AddDays(14), user.Id, clock.UtcNow);
+        await dbContext.RefreshTokens.AddAsync(nextRefreshToken, cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
         await auditWriter.WriteAsync(user.Id, null, "user.token_refreshed", nameof(User), user.Id.ToString(), $"User {user.Email} refreshed access tokens.", cancellationToken: cancellationToken);

@@ -104,7 +104,13 @@ public sealed class ProjectService(IGci409DbContext dbContext, IAuditWriter audi
             throw new NotFoundException("The collaborator user was not found.");
         }
 
+        var hasExistingMembership = project.Memberships.Any(x => x.UserId == request.UserId);
         var membership = project.AddMembership(request.UserId, request.Role, actorUserId, clock.UtcNow);
+        if (!hasExistingMembership)
+        {
+            await dbContext.ProjectMemberships.AddAsync(membership, cancellationToken);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         await auditWriter.WriteAsync(actorUserId, projectId, "project.collaborator_added", nameof(ProjectMembership), membership.Id.ToString(), $"Added collaborator {request.UserId} as {request.Role}.", cancellationToken: cancellationToken);
 

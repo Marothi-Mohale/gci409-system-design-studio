@@ -43,6 +43,11 @@ public sealed class RequirementService(
             .ToList();
 
         var version = requirementSet.AddVersion(request.Summary, requirements, constraints, userId, clock.UtcNow);
+        if (!isNew)
+        {
+            await dbContext.RequirementSetVersions.AddAsync(version, cancellationToken);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         await auditWriter.WriteAsync(userId, projectId, "requirements.saved", nameof(RequirementSetVersion), version.Id.ToString(), $"Saved requirement set version {version.VersionNumber}.", cancellationToken: cancellationToken);
 

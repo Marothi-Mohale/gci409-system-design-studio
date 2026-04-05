@@ -5,7 +5,12 @@ import { z } from "zod";
 const registerSchema = z.object({
   fullName: z.string().min(2, "Enter the operator's full name."),
   email: z.string().email("Enter a valid email address."),
-  password: z.string().min(8, "Passwords must be at least 8 characters.")
+  password: z
+    .string()
+    .min(12, "Passwords must be at least 12 characters.")
+    .regex(/[A-Z]/, "Passwords must include at least one uppercase letter.")
+    .regex(/[a-z]/, "Passwords must include at least one lowercase letter.")
+    .regex(/[0-9]/, "Passwords must include at least one number.")
 });
 
 const loginSchema = registerSchema.omit({ fullName: true });
@@ -76,6 +81,7 @@ function RegisterAuthForm(props: Extract<AuthFormProps, { mode: "register" }>) {
         <input type="password" {...register("password")} autoComplete="new-password" />
         {errors.password && <span className="form-error">{errors.password.message}</span>}
       </label>
+      <p className="subtle-text">Use at least 12 characters with uppercase, lowercase, and a number.</p>
 
       <button disabled={isSubmitting} type="submit">
         {isSubmitting ? "Submitting..." : props.submitLabel}

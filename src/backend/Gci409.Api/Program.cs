@@ -37,6 +37,23 @@ builder.Services.AddProblemDetails();
 builder.Services.AddHealthChecks().AddCheck<PostgresHealthCheck>("postgresql");
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services
+    .AddOptions<ApiCorsOptions>()
+    .Bind(builder.Configuration.GetSection(ApiCorsOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+var corsOptions = builder.Configuration.GetSection(ApiCorsOptions.SectionName).Get<ApiCorsOptions>() ?? new ApiCorsOptions();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy
+            .WithOrigins(corsOptions.AllowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("JWT options are not configured.");
@@ -81,6 +98,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors("Frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 

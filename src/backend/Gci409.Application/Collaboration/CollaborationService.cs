@@ -97,7 +97,8 @@ public sealed class CollaborationService(
             .SingleOrDefaultAsync(x => x.ProjectId == projectId && x.Id == threadId, cancellationToken)
             ?? throw new NotFoundException("Comment thread was not found.");
 
-        thread.AddComment(request.Body, userId, clock.UtcNow);
+        var comment = thread.AddComment(request.Body, userId, clock.UtcNow);
+        await dbContext.Comments.AddAsync(comment, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
         await auditWriter.WriteAsync(userId, projectId, "comment.added", nameof(CommentThread), thread.Id.ToString(), "Added comment to thread.", cancellationToken: cancellationToken);
 

@@ -41,7 +41,6 @@ public sealed class ArtifactService(
     {
         var version = await dbContext.ArtifactVersions
             .Include(x => x.GeneratedArtifact)
-            .Include(x => x.Exports)
             .SingleOrDefaultAsync(x => x.Id == artifactVersionId, cancellationToken)
             ?? throw new NotFoundException("Artifact version not found.");
 
@@ -50,6 +49,7 @@ public sealed class ArtifactService(
         var content = artifactExportContentResolver.ResolveContent(version, request.Format);
         var fileName = $"{version.GeneratedArtifact.Title.Replace(' ', '-')}-v{version.VersionNumber}.{ResolveExtension(request.Format)}";
         var export = version.AddExport(request.Format, fileName, content, userId, clock.UtcNow);
+        await dbContext.ArtifactExports.AddAsync(export, cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
         await auditWriter.WriteAsync(userId, version.GeneratedArtifact.ProjectId, "artifact.exported", nameof(ArtifactExport), export.Id.ToString(), $"Exported artifact version {version.VersionNumber} as {request.Format}.", cancellationToken: cancellationToken);
