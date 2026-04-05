@@ -12,8 +12,15 @@ import { PageHeader } from "../../../shared/ui/PageHeader";
 import { Panel } from "../../../shared/ui/Panel";
 
 const schema = z.object({
-  name: z.string().min(3, "Project names should be at least 3 characters."),
-  description: z.string().min(12, "Describe the solution initiative in a little more detail.")
+  name: z
+    .string()
+    .trim()
+    .min(1, "Enter a project name.")
+    .max(200, "Project names must be 200 characters or fewer."),
+  description: z
+    .string()
+    .trim()
+    .max(4000, "Descriptions must be 4000 characters or fewer.")
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -40,6 +47,7 @@ export function DashboardPage() {
     mutationFn: (values: FormValues) => projectsApi.create(session!.accessToken, values),
     onSuccess: async (project) => {
       reset();
+      queryClient.setQueryData(["project-detail", project.id], project);
       await queryClient.invalidateQueries({ queryKey: ["projects", session?.userId] });
       navigate(`/app/projects/${project.id}`);
     }
@@ -70,7 +78,12 @@ export function DashboardPage() {
 
       <div className="two-column">
         <Panel title="Create project workspace" subtitle="Open a new design initiative and start capturing requirements.">
-          <form className="stack" onSubmit={handleSubmit((values) => createProject.mutate(values))}>
+          <form className="stack" onSubmit={handleSubmit(async (values) => createProject.mutateAsync(values))}>
+            {createProject.isError && (
+              <div className="message" role="alert">
+                {createProject.error instanceof Error ? createProject.error.message : "Unable to create the workspace."}
+              </div>
+            )}
             <label>
               Project name
               <input {...register("name")} />
@@ -81,6 +94,7 @@ export function DashboardPage() {
               <textarea {...register("description")} />
               {errors.description && <span className="form-error">{errors.description.message}</span>}
             </label>
+            <p className="subtle-text">Create the workspace now, then capture requirements and constraints inside it.</p>
             <button type="submit" disabled={createProject.isPending}>
               {createProject.isPending ? "Creating..." : "Create workspace"}
             </button>
